@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Derekkoz.AI</title>
+    
+    <link rel="icon" type="image/png" href="favicon.png">
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(150deg, #b355ff 0%, #4c6bff 100%);
+            --glass-bg: rgba(255, 255, 255, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-color: #000;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background: var(--bg-gradient);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--text-color);
+        }
+
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+
+        .header-left, .header-right {
+            flex: 1; 
+        }
+
+        .header-right {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .header-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex: 2;
+        }
+
+        
+        .project-logo {
+            width: 32px; 
+            height: 32px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2); 
+        }
+
+        .title { font-size: 1.2rem; font-weight: 700; }
+
+        .btn-clear {
+            width: 36px; height: 36px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            font-size: 24px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transition: 0.2s;
+        }
+        .btn-clear:active { transform: scale(0.95); }
+
+        
+        #chat-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 90%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .message.user {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            background: #ffffff;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+
+        .message.ai h3 { margin-top: 15px; margin-bottom: 5px; font-size: 1.1rem; color: #111; }
+        .message.ai h3:first-child { margin-top: 0; }
+        .message.ai p { margin-bottom: 10px; }
+        .message.ai ul, .message.ai ol { margin-left: 20px; margin-bottom: 10px; }
+
+       
+        .sources-container {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .source-card {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px;
+            background: #f5f5f5; border-radius: 20px;
+            text-decoration: none; color: #333;
+            font-size: 0.8rem; border: 1px solid #e0e0e0;
+            transition: 0.2s;
+        }
+        .source-card:hover { background: #e0e0e0; }
+        .source-card img { width: 16px; height: 16px; border-radius: 50%; }
+
+        /* --- Анимация загрузки (Neural Vortex) --- */
+        .ai-loader-container {
+            position: relative;
+            width: 100%;
+            height: 90px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background: rgba(240, 242, 245, 0.5);
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .loader-blob {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            filter: blur(12px);
+            opacity: 0.6;
+            mix-blend-mode: multiply;
+            animation: blob-float 4s ease-in-out infinite alternate;
+        }
+
+        .blob-1 { background: linear-gradient(135deg, #4c6bff, #00d4ff); left: 35%; animation-delay: 0s; }
+        .blob-2 { background: linear-gradient(135deg, #b355ff, #ff55b3); right: 35%; animation-delay: -2s; }
+
+        .loader-text {
+            position: relative;
+            z-index: 2;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #555;
+            font-style: italic;
+            animation: text-pulse 1.5s ease-in-out infinite;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 4px 10px;
+            border-radius: 20px;
+            backdrop-filter: blur(2px);
+        }
+
+        @keyframes blob-float {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); border-radius: 50%; }
+            50% { transform: translate(15px, -10px) scale(1.1) rotate(90deg); border-radius: 40% 60% 50% 50% / 50% 40% 60% 50%; }
+            100% { transform: translate(-15px, 15px) scale(0.9) rotate(180deg); border-radius: 50%; }
+        }
+
+        @keyframes text-pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+
+        
+        .input-area {
+            padding: 15px;
+            background: transparent;
+            display: flex; gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 30px;
+            border: none;
+            background: #cfd8dc;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .btn-send {
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            background: #cfd8dc;
+            border: none;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-send:active { transform: scale(0.9); }
+        .btn-send svg { width: 24px; height: 24px; fill: black; }
+
+       
+        @media (min-width: 768px) {
+            body { align-items: center; background: #f0f2f5; }
+            .app-wrapper {
+                width: 100%; max-width: 600px; height: 100vh;
+                background: var(--bg-gradient);
+                display: flex; flex-direction: column;
+                box-shadow: 0 0 30px rgba(0,0,0,0.2);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <header>
+        <div class="header-left"></div>
+        
+        <div class="header-center">
+            <img src='logo.png' alt="Logo" class="project-logo" onerror="this.style.display='none'">
+            <div class="title">Derekkoz.AI</div>
+        </div>
+        
+        <div class="header-right">
+            <button class="btn-clear" id="clearBtn">+</button>
+        </div>
+    </header>
+
+    <div id="chat-container">
+        </div>
+
+    <div class="input-area">
+        <input type="text" id="queryInput" placeholder="Сұранысты енгізіңіз..." autocomplete="off">
+        <button class="btn-send" id="sendBtn">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+        </button>
+    </div>
+</div>
+
+<script>
+    const chatContainer = document.getElementById('chat-container');
+    const queryInput = document.getElementById('queryInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // Умный автоскролл
+    let isScrolledToBottom = true;
+    chatContainer.addEventListener('scroll', () => {
+        isScrolledToBottom = chatContainer.scrollHeight - chatContainer.clientHeight <= chatContainer.scrollTop + 50;
+    });
+
+    function scrollToBottom() {
+        if (isScrolledToBottom) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    }
+
+    
+    clearBtn.addEventListener('click', () => {
+        chatContainer.innerHTML = '';
+    });
+
+    
+    queryInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendQuery();
+    });
+    sendBtn.addEventListener('click', sendQuery);
+
+    async function sendQuery() {
+        const query = queryInput.value.trim();
+        if (!query) return;
+
+        appendMessage('user', query);
+        queryInput.value = '';
+
+        const aiMessageDiv = document.createElement('div');
+        aiMessageDiv.className = 'message ai';
+        
+        const contentDiv = document.createElement('div');
+        
+        contentDiv.innerHTML = `
+            <div class="ai-loader-container">
+                <div class="loader-blob blob-1"></div>
+                <div class="loader-blob blob-2"></div>
+                <span class="loader-text">Ақпарат жиналуда...</span>
+            </div>
+        `;
+        aiMessageDiv.appendChild(contentDiv);
+
+        const sourcesDiv = document.createElement('div');
+        sourcesDiv.className = 'sources-container';
+        sourcesDiv.style.display = 'none';
+        aiMessageDiv.appendChild(sourcesDiv);
+
+        chatContainer.appendChild(aiMessageDiv);
+        isScrolledToBottom = true; 
+        scrollToBottom();
+
+        let fullText = "";
+
+        try {
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+
+            contentDiv.innerHTML = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n\n');
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.replace('data: ', '');
+                        if (!dataStr) continue;
+                        
+                        const payload = JSON.parse(dataStr);
+                        
+                        if (payload.type === 'sources') {
+                            renderSources(payload.data, sourcesDiv);
+                            scrollToBottom();
+                        } 
+                        else if (payload.type === 'text') {
+                            fullText += payload.data;
+                            contentDiv.innerHTML = marked.parse(fullText);
+                            scrollToBottom();
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            contentDiv.innerHTML = `<span style="color:red; font-weight: 500;">Сервер қателігі.</span>`;
+        }
+    }
+
+    function renderSources(sources, container) {
+        container.style.display = 'flex';
+        container.innerHTML = ''; 
+        
+        sources.forEach(src => {
+            const a = document.createElement('a');
+            a.href = src.url;
+            a.target = '_blank';
+            a.className = 'source-card';
+            a.innerHTML = `<img src="${src.favicon}" alt="" onerror="this.src='https://via.placeholder.com/16'"><span>${src.domain}</span>`;
+            container.appendChild(a);
+        });
+    }
+
+    function appendMessage(sender, text) {
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        div.textContent = text;
+        chatContainer.appendChild(div);
+        
+        isScrolledToBottom = true;
+        scrollToBottom();
+    }
+</script>
+</body>
+</html>
